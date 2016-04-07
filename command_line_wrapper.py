@@ -5,7 +5,6 @@ import os
 import signal
 import threading
 import weakref
-import types
 from functools import wraps
 from collections import namedtuple, deque
 
@@ -14,7 +13,12 @@ class CommandLineWrapper:
     """Wraps a command line application. Redirects stdin, stdout and stderr
        through pipes. Reads stdout and stderr asynchronously.
 
-    >>> c = CommandLineWrapper('cmd', encoding='cp866')
+    >>> def make_clw():
+    ...     if sys.platform == 'win32':
+    ...         return CommandLineWrapper('cmd', encoding='cp866')
+    ...     else:
+    ...         return CommandLineWrapper('bash', encoding='utf-8')
+    >>> c = make_clw()
     >>> c.stop()
     >>> c.communicate('echo Hello World!')
     Traceback (most recent call last):
@@ -24,7 +28,7 @@ class CommandLineWrapper:
     >>> out = c.communicate('echo Hello World!')
     >>> assert 'Hello World!' in out
     >>> out = c.communicate('AaaazzzZ')
-    >>> assert c._STDERR_PREFIX in out
+    >>> assert c._STDERR_PREFIX in out and 'AaaazzzZ' in out
     >>> c.stop()
     >>> c.stop()
     Traceback (most recent call last):
@@ -38,11 +42,9 @@ class CommandLineWrapper:
     >>> c.stop()
 
     Context manager
-    >>> cc = None
-    >>> with CommandLineWrapper('cmd', encoding='cp866') as c:
-    ...     cc = c
+    >>> with make_clw() as c:
     ...     assert 'AAAAAA' in c.communicate('echo AAAAAA')
-    >>> assert not cc.is_running
+    >>> assert not c.is_running
 
     """
 
